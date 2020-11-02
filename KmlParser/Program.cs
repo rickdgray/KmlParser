@@ -30,18 +30,11 @@ namespace KmlParser
 
     public class Parser
     {
-        List<string> ValidNames { get; set; }
-
         public void Parse(FileStream readFileStream, StreamWriter writeFileStream)
         {
-            ValidNames = new List<string>
-            {
-                "Folder",
-                "name",
-                "coordinates"
-            };
-
             var printNextValue = false;
+            //flag specifically used to avoid inner boundaries
+            var printNextcoords = false;
             using XmlReader reader = XmlReader.Create(readFileStream, new XmlReaderSettings
             {
                 IgnoreComments = false
@@ -52,21 +45,36 @@ namespace KmlParser
                 switch (reader.NodeType)
                 {
                     case XmlNodeType.Element:
-                        if (ValidNames.Contains(reader.Name))
+                        switch (reader.Name)
                         {
-                            printNextValue = true;
-                        }
-                        else if (reader.Name.Equals("SimpleData")
-                            && reader.AttributeCount > 0
-                            && reader.GetAttribute("name").Equals("nature"))
-                        {
-                            printNextValue = true;
+                            case "Folder":
+                            case "name":
+                                printNextValue = true;
+                                break;
+                            case "SimpleData":
+                                if (reader.AttributeCount > 0
+                                    && reader.GetAttribute("name").Equals("nature"))
+                                {
+                                    printNextValue = true;
+                                }
+                                break;
+                            case "outerBoundaryIs":
+                                printNextcoords = true;
+                                break;
+                            case "coordinates":
+                                //only print outer boundaries
+                                if (printNextcoords)
+                                {
+                                    printNextValue = true;
+                                }
+                                break;
                         }
                         break;
                     case XmlNodeType.Text:
                         if (printNextValue)
                         {
                             printNextValue = false;
+                            printNextcoords = false;
                             writeFileStream.WriteLine(reader.Value);
                             Console.WriteLine(reader.Value);
                         }
