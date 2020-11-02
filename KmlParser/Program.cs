@@ -12,10 +12,10 @@ namespace KmlParser
         static void Main()
         {
             var zinjPath = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.kml");
-            var readFileStream = File.OpenRead(zinjPath);
+            using var readFileStream = File.OpenRead(zinjPath);
 
             var parsedPath = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.txt");
-            var writeFileStream = File.CreateText(parsedPath);
+            using var writeFileStream = File.CreateText(parsedPath);
 
             var parser = new Parser();
             parser.Parse(readFileStream, writeFileStream);
@@ -23,8 +23,50 @@ namespace KmlParser
             writeFileStream.Flush();
             writeFileStream.Close();
 
+            readFileStream.Close();
+
             readFileStream.Dispose();
             writeFileStream.Dispose();
+
+            var zinjPathTxt = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.txt");
+            using var readFileStreamTxt = File.OpenRead(zinjPathTxt);
+
+            var csvPath = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.csv");
+            using var writeFileStreamCsv = File.CreateText(csvPath);
+
+            using var streadReader = new StreamReader(readFileStreamTxt);
+
+            writeFileStreamCsv.WriteLine("Name,Type,Coords");
+            Console.WriteLine("Name,Type,Coords");
+
+            var column = 0;
+            string line;
+            while ((line = streadReader.ReadLine()) != null)
+            {
+                if (column % 3 == 2)
+                {
+                    writeFileStreamCsv.WriteLine($"\"{line.Trim()}\"");
+                    Console.WriteLine($"\"{line.Trim()}\"");
+                }
+                else
+                {
+                    writeFileStreamCsv.Write(line.Trim());
+                    Console.Write(line.Trim());
+
+                    writeFileStreamCsv.Write(",");
+                    Console.Write(",");
+                }
+
+                column++;
+            }
+
+            writeFileStreamCsv.Flush();
+            writeFileStreamCsv.Close();
+
+            readFileStreamTxt.Close();
+
+            writeFileStreamCsv.Dispose();
+            readFileStreamTxt.Dispose();
         }
     }
 
@@ -47,7 +89,6 @@ namespace KmlParser
                     case XmlNodeType.Element:
                         switch (reader.Name)
                         {
-                            case "Folder":
                             case "name":
                                 printNextValue = true;
                                 break;
@@ -75,6 +116,15 @@ namespace KmlParser
                         {
                             printNextValue = false;
                             printNextcoords = false;
+
+                            if (reader.Value.Equals("Zone_1")
+                                || reader.Value.Equals("Zone_2")
+                                || reader.Value.Equals("Zone_3"))
+                            {
+                                //ignore zone names
+                                continue;
+                            }
+
                             writeFileStream.WriteLine(reader.Value);
                             Console.WriteLine(reader.Value);
                         }
