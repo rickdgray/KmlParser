@@ -11,11 +11,12 @@ namespace KmlParser
     {
         static void Main()
         {
-            var zinjPath = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.kml");
-            using var readFileStream = File.OpenRead(zinjPath);
+            var zinjKmlPath = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.kml");
+            var zinjTxtPath = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.txt");
+            var zinjCsvPath = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.csv");
 
-            var parsedPath = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.txt");
-            using var writeFileStream = File.CreateText(parsedPath);
+            using var readFileStream = File.OpenRead(zinjKmlPath);
+            using var writeFileStream = File.CreateText(zinjTxtPath);
 
             var parser = new Parser();
             parser.Parse(readFileStream, writeFileStream);
@@ -28,37 +29,97 @@ namespace KmlParser
             readFileStream.Dispose();
             writeFileStream.Dispose();
 
-            var zinjPathTxt = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.txt");
-            using var readFileStreamTxt = File.OpenRead(zinjPathTxt);
+            //TODO: don't write to immediate read
+            //turn into memory stream probably
 
-            var csvPath = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.csv");
-            using var writeFileStreamCsv = File.CreateText(csvPath);
-
-            using var streadReader = new StreamReader(readFileStreamTxt);
-
-            writeFileStreamCsv.WriteLine("Name,Type,Coords");
-            Console.WriteLine("Name,Type,Coords");
+            using var readFileStreamTxt = File.OpenRead(zinjTxtPath);
+            using var streamReader = new StreamReader(readFileStreamTxt);
 
             var column = 0;
-            string line;
-            while ((line = streadReader.ReadLine()) != null)
+            string name;
+            var pois = new List<PointOfInterest>();
+            while ((name = streamReader.ReadLine()) != null)
             {
-                if (column % 3 == 2)
+                var type = BuildingType.Unspecified;
+                switch (streamReader.ReadLine())
                 {
-                    writeFileStreamCsv.WriteLine($"\"{line.Trim()}\"");
-                    Console.WriteLine($"\"{line.Trim()}\"");
+                    case "Autre":
+                        type = BuildingType.Autre;
+                        break;
+                    case "Autre/Ecole":
+                        type = BuildingType.AutreEcole;
+                        break;
+                    case "Autre/Eglise":
+                        type = BuildingType.AutreEglise;
+                        break;
+                    case "Autre/Parking":
+                        type = BuildingType.AutreParking;
+                        break;
+                    case "church":
+                        type = BuildingType.Church;
+                        break;
+                    case "collective_house":
+                        type = BuildingType.CollectiveHouse;
+                        break;
+                    case "commercial_building":
+                        type = BuildingType.CommercialBuilding;
+                        break;
+                    case "commercial_building sportive":
+                        type = BuildingType.CommercialBuildingSportive;
+                        break;
+                    case "garage":
+                        type = BuildingType.Garage;
+                        break;
+                    case "hospital":
+                        type = BuildingType.Hospital;
+                        break;
+                    case "light_building":
+                        type = BuildingType.LightBuilding;
+                        break;
+                    case "school":
+                        type = BuildingType.School;
+                        break;
+                    case "single_house":
+                        type = BuildingType.SingleHouse;
+                        break;
+                    case "sport_building":
+                        type = BuildingType.SportBuilding;
+                        break;
                 }
-                else
-                {
-                    writeFileStreamCsv.Write(line.Trim());
-                    Console.Write(line.Trim());
 
-                    writeFileStreamCsv.Write(",");
-                    Console.Write(",");
+                var lats = new List<double>();
+                var logs = new List<double>();
+                var coordsString = streamReader.ReadLine();
+                var coordPairStrings = coordsString.Split(" ").ToList();
+                foreach (var coordPairString in coordPairStrings)
+                {
+                    var coordPair = coordPairString.Split(",").ToList();
+
+                    if (double.TryParse(coordPair.First(), out var tmpLat))
+                    {
+                        lats.Add(tmpLat);
+                    }
+
+                    if (double.TryParse(coordPair.First(), out var tmpLog))
+                    {
+                        logs.Add(tmpLog);
+                    }
                 }
+
+                pois.Add(new PointOfInterest
+                {
+                    Name = name.Trim(),
+                    Type = type,
+                    Latitude = lats.Sum() / lats.Count,
+                    Longitude = logs.Sum() / logs.Count
+                });
 
                 column++;
             }
+
+            using var writeFileStreamCsv = File.CreateText(zinjCsvPath);
+            writeFileStreamCsv.WriteLine("Name,Type,Latitude,Logitude");
+            pois.ForEach(p => writeFileStreamCsv.WriteLine($"{p.Name},{Enum.GetName(typeof(BuildingType), p.Type)},{p.Latitude},{p.Longitude}"));
 
             writeFileStreamCsv.Flush();
             writeFileStreamCsv.Close();
@@ -126,13 +187,11 @@ namespace KmlParser
                             }
 
                             writeFileStream.WriteLine(reader.Value);
-                            Console.WriteLine(reader.Value);
                         }
                         break;
                     case XmlNodeType.CDATA:
                         var cdata = ParseCdata(reader.Value);
                         writeFileStream.WriteLine(cdata);
-                        Console.WriteLine(cdata);
                         break;
                     default:
                         break;
@@ -149,5 +208,32 @@ namespace KmlParser
             //disgusting hack that assumes the second i tag is the value of the nature
             return cdata.FirstOrDefault(i => i.Name == "i").Value;
         }
+    }
+
+    public class PointOfInterest
+    {
+        public string Name { get; set; }
+        public BuildingType Type { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+    }
+
+    public enum BuildingType
+    {
+        Unspecified,
+        Autre,
+        AutreEcole,
+        AutreEglise,
+        AutreParking,
+        Church,
+        CollectiveHouse,
+        CommercialBuilding,
+        CommercialBuildingSportive,
+        Garage,
+        Hospital,
+        LightBuilding,
+        School,
+        SingleHouse,
+        SportBuilding
     }
 }
