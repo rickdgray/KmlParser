@@ -1,17 +1,37 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using System.Linq;
 
 namespace KmlParser
 {
     public class Program
     {
-        static void Main()
+        static int Main(string[] args)
         {
-            var kmlPath = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.kml");
-            var csvPath = Path.Combine(Directory.GetCurrentDirectory(), "Zinj.csv");
+            var path = args.FirstOrDefault();
+            if (path == null)
+            {
+                Console.WriteLine("Drop the .kml file onto the .exe to initiate.");
+                Console.ReadKey();
+                return 1;
+            }
 
-            var parsedData = new KmlParser().Parse(kmlPath);
+            var kmlFile = new DirectoryInfo(path);
 
-            new CsvBuilder().Build(parsedData, csvPath);
+            if (!kmlFile.Extension.Equals(".kml"))
+            {
+                Console.WriteLine("The provided file is not a .kml.");
+                Console.ReadKey();
+                return 2;
+            }
+
+            var csvFile = Path.Combine(kmlFile.Parent.FullName, "Zinj.csv");
+
+            var parsedData = new KmlParser().Parse(kmlFile.FullName);
+
+            new CsvBuilder().Build(parsedData, csvFile);
+
+            return 0;
         }
     }
 }
