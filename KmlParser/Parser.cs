@@ -1,14 +1,11 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Xml;
+﻿using System.Xml;
 using System.Xml.Linq;
 
 namespace KmlParser
 {
-    public class KmlParser
+    public class Parser
     {
-        public List<string> Parse(string path)
+        public static List<string> Parse(string path)
         {
             using var readStream = File.OpenRead(path);
 
@@ -34,7 +31,7 @@ namespace KmlParser
                                 break;
                             case "SimpleData":
                                 if (reader.AttributeCount > 0
-                                    && reader.GetAttribute("name").Equals("nature"))
+                                    && (reader.GetAttribute("name")?.Equals("nature") ?? false))
                                 {
                                     printNextValue = true;
                                 }
@@ -72,8 +69,6 @@ namespace KmlParser
                         var cdata = ParseCdata(reader.Value);
                         parsedData.Add(cdata);
                         break;
-                    default:
-                        break;
                 }
             }
 
@@ -83,14 +78,14 @@ namespace KmlParser
             return parsedData;
         }
 
-        public string ParseCdata(string cdataString)
+        public static string ParseCdata(string cdataString)
         {
             //enclose in parent to prevent multiple root nodes
             cdataString = $"<parent>{cdataString}</parent>";
             var cdataParent = XElement.Parse(cdataString);
             var cdata = cdataParent.Descendants();
             //disgusting hack that assumes the second i tag is the value of the nature
-            return cdata.FirstOrDefault(i => i.Name == "i").Value;
+            return cdata.FirstOrDefault(i => i.Name.Equals("i"))?.Value ?? string.Empty;
         }
     }
 }

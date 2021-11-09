@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
-namespace KmlParser
+﻿namespace KmlParser
 {
     public class CsvBuilder
     {
-        public void Build(List<string> parsedData, string path)
+        public static void Build(List<string> parsedData, string path)
         {
             using var writeStream = File.CreateText(path);
 
@@ -15,54 +10,26 @@ namespace KmlParser
             var buildings = new List<Building>();
             while (count < parsedData.Count)
             {
-                var name = parsedData[count];
+                var name = parsedData[count].Trim();
 
-                var type = BuildingType.Unspecified;
-                switch (parsedData[count + 1])
+                var type = parsedData[count + 1] switch
                 {
-                    case "Autre":
-                        type = BuildingType.Autre;
-                        break;
-                    case "Autre/Ecole":
-                        type = BuildingType.AutreEcole;
-                        break;
-                    case "Autre/Eglise":
-                        type = BuildingType.AutreEglise;
-                        break;
-                    case "Autre/Parking":
-                        type = BuildingType.AutreParking;
-                        break;
-                    case "church":
-                        type = BuildingType.Church;
-                        break;
-                    case "collective_house":
-                        type = BuildingType.CollectiveHouse;
-                        break;
-                    case "commercial_building":
-                        type = BuildingType.CommercialBuilding;
-                        break;
-                    case "commercial_building sportive":
-                        type = BuildingType.CommercialBuildingSportive;
-                        break;
-                    case "garage":
-                        type = BuildingType.Garage;
-                        break;
-                    case "hospital":
-                        type = BuildingType.Hospital;
-                        break;
-                    case "light_building":
-                        type = BuildingType.LightBuilding;
-                        break;
-                    case "school":
-                        type = BuildingType.School;
-                        break;
-                    case "single_house":
-                        type = BuildingType.SingleHouse;
-                        break;
-                    case "sport_building":
-                        type = BuildingType.SportBuilding;
-                        break;
-                }
+                    "Autre" => BuildingType.Autre,
+                    "Autre/Ecole" => BuildingType.AutreEcole,
+                    "Autre/Eglise" => BuildingType.AutreEglise,
+                    "Autre/Parking" => BuildingType.AutreParking,
+                    "church" => BuildingType.Church,
+                    "collective_house" => BuildingType.CollectiveHouse,
+                    "commercial_building" => BuildingType.CommercialBuilding,
+                    "commercial_building sportive" => BuildingType.CommercialBuildingSportive,
+                    "garage" => BuildingType.Garage,
+                    "hospital" => BuildingType.Hospital,
+                    "light_building" => BuildingType.LightBuilding,
+                    "school" => BuildingType.School,
+                    "single_house" => BuildingType.SingleHouse,
+                    "sport_building" => BuildingType.SportBuilding,
+                    _ => BuildingType.Unspecified,
+                };
 
                 var lats = new List<double>();
                 var logs = new List<double>();
@@ -84,7 +51,7 @@ namespace KmlParser
 
                 buildings.Add(new Building
                 {
-                    Name = name.Trim(),
+                    Name = name,
                     Type = type,
                     Latitude = lats.Sum() / lats.Count,
                     Longitude = logs.Sum() / logs.Count
